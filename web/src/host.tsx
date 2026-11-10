@@ -5,7 +5,11 @@ import { buzzerPhase, currentAnswerer } from "../../shared/game";
 import { parseQuiz, type ParseResult } from "../../shared/tsv";
 import type { HostAction, HostView, ServerMsg } from "../../shared/types";
 import { useRoom, useServerNow } from "./net";
-import { Avatar, ConnPill, Qr, Rich, Standings, TimerBadge, Toasts, queueRows, useToasts } from "./ui";
+import {
+  Check, ChevronLeft, ChevronRight, Eye, EyeOff, Flag, LifeBuoy, Minus, Monitor, Pause, Play, Plus, Redo2, Smartphone, Trophy, Undo2, Upload, X,
+} from "lucide-react";
+import { AnimatePresence, Motion, Score, Standings, motion } from "./anim";
+import { ConnPill, PlayerAvatar, Qr, Rich, TimerBadge, Toasts, queueRows, useToasts } from "./ui";
 import "./styles.css";
 
 const keyFor = (code: string) => `bq.host.${code}`;
@@ -111,6 +115,7 @@ function Setup({ onCreated, missingKey }: { onCreated: (code: string, key: strin
         onDrop={onDrop}
       >
         <input type="file" accept=".tsv,.txt,text/tab-separated-values,text/plain" onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0])} />
+        <Upload size={28} aria-hidden />
         <strong>Choose a .tsv quiz file</strong>
         <span className="muted">or drop it here</span>
         <span className="muted small">Columns: roundNo, questionNo, questionText, answerText, imageUrl, or just question and answer</span>
@@ -231,9 +236,11 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
         </div>
         <div className="head-actions">
           <a className="button" href={displayUrl} target="bq-display" rel="noopener">
-            Open display
+            <Monitor size={18} aria-hidden /> Open display
           </a>
-          <button onClick={() => setShowPhone(true)}>Control on phone</button>
+          <button onClick={() => setShowPhone(true)}>
+            <Smartphone size={18} aria-hidden /> Control on phone
+          </button>
         </div>
       </header>
 
@@ -269,10 +276,14 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
 
       {view && view.phase === "ended" && (
         <section className="panel">
-          <Standings players={view.players} title={<h2>Final standings</h2>} />
+          <Standings players={view.players} title={<h2>Final standings</h2>} animated={false} />
           <div className="row wrap">
-            <button onClick={() => act({ t: "prev" })}>← Back to last question</button>
-            <button onClick={() => setShowSpares(!showSpares)}>Spares ({view.spares.length})</button>
+            <button onClick={() => act({ t: "prev" })}>
+              <ChevronLeft size={18} aria-hidden /> Back to last question
+            </button>
+            <button onClick={() => setShowSpares(!showSpares)}>
+                <LifeBuoy size={18} aria-hidden /> Spares ({view.spares.length})
+              </button>
             <UndoRedo view={view} act={act} />
           </div>
           {showSpares && <SparesList view={view} act={act} />}
@@ -308,10 +319,15 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
               <TimerBadge timer={q.timer} now={now} large />
               <div className="timer-buttons">
                 <button className="primary" onClick={() => act({ t: q.timer.startedAt != null ? "timerPause" : "timerStart" })}>
+                  {q.timer.startedAt != null ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
                   {q.timer.startedAt != null ? "Pause" : q.buzzOpenAt == null ? "Start timer & open buzzers" : "Resume timer"}
                 </button>
-                <button onClick={() => act({ t: "timerAdd", ms: -10_000 })}>−10s</button>
-                <button onClick={() => act({ t: "timerAdd", ms: 10_000 })}>+10s</button>
+                <button onClick={() => act({ t: "timerAdd", ms: -10_000 })} aria-label="Remove 10 seconds">
+                  <Minus size={18} aria-hidden />10s
+                </button>
+                <button onClick={() => act({ t: "timerAdd", ms: 10_000 })} aria-label="Add 10 seconds">
+                  <Plus size={18} aria-hidden />10s
+                </button>
                 <Seg value={Math.round(q.timer.duration / 1000)} options={[30, 60]} onChange={(sec) => act({ t: "timerSet", sec })} suffix="s" />
               </div>
             </div>
@@ -321,48 +337,61 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
               <p className="muted">No buzzes yet.</p>
             ) : (
               <ol className="queue">
+                <AnimatePresence initial={false}>
                 {rows.map((r) => (
-                  <li key={r.entry.id} className={`queue-row ${r.answering ? "answering" : ""} ${r.entry.mark ?? ""}`}>
+                  <motion.li
+                    key={`${q.qid}-${r.entry.id}`}
+                    layout
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 32 }}
+                    className={`queue-row ${r.answering ? "answering" : ""} ${r.entry.mark ?? ""}`}
+                  >
                     <span className="place">{r.place}</span>
-                    {r.player && <Avatar name={r.player.name} color={r.player.color} size={32} />}
+                    {r.player && <PlayerAvatar name={r.player.name} color={r.player.color} size={32} />}
                     <span className="name">{r.player?.name ?? "(removed)"}</span>
                     <span className="gap muted">{r.place === 1 ? "first" : `+${r.gapMs} ms`}</span>
                     <span className="state">
                       {r.entry.mark === "correct" ? "correct" : r.entry.mark === "wrong" ? "wrong" : r.answering ? (r.settled ? "answering" : "checking…") : "waiting"}
                     </span>
-                  </li>
+                  </motion.li>
                 ))}
+                </AnimatePresence>
               </ol>
             )}
 
             <div className="mark-buttons">
               <button className="correct big" disabled={!answering} onClick={() => answering && act({ t: "correct", id: answering.entry.id })}>
-                ✓ Correct{answering ? `: ${answering.player?.name}` : ""} <kbd>C</kbd>
+                <Check size={20} strokeWidth={3} aria-hidden /> Correct{answering ? `: ${answering.player?.name}` : ""} <kbd>C</kbd>
               </button>
               <button className="wrong big" disabled={!answering} onClick={() => answering && act({ t: "wrong", id: answering.entry.id })}>
-                ✗ Wrong <kbd>W</kbd>
+                <X size={20} strokeWidth={3} aria-hidden /> Wrong <kbd>W</kbd>
               </button>
             </div>
 
             <div className="row wrap">
               <button onClick={() => act({ t: "reveal" })} disabled={q.revealed}>
+                {q.revealed ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
                 {q.revealed ? "Answer revealed" : "Reveal answer"} <kbd>R</kbd>
               </button>
               <button onClick={() => act({ t: "prev" })}>
-                ← Prev
+                <ChevronLeft size={18} aria-hidden /> Prev
               </button>
               <button className="primary" onClick={() => act({ t: "next" })}>
-                {view.index + 1 >= view.questionCount && q.kind === "main" ? "Finish game" : "Next →"} <kbd>N</kbd>
+                {view.index + 1 >= view.questionCount && q.kind === "main" ? <><Trophy size={18} aria-hidden /> Finish game</> : <>Next <ChevronRight size={18} aria-hidden /></>} <kbd>N</kbd>
               </button>
             </div>
             <div className="row wrap">
               <UndoRedo view={view} act={act} />
-              <button onClick={() => setShowSpares(!showSpares)}>Spares ({view.spares.length})</button>
+              <button onClick={() => setShowSpares(!showSpares)}>
+                <LifeBuoy size={18} aria-hidden /> Spares ({view.spares.length})
+              </button>
               <button
                 className="danger"
                 onClick={() => confirm("End the game now and show final standings?") && act({ t: "end" })}
               >
-                End game
+                <Flag size={18} aria-hidden /> End game
               </button>
             </div>
             {showSpares && <SparesList view={view} act={act} />}
@@ -399,10 +428,10 @@ function UndoRedo({ view, act }: { view: HostView; act: (a: HostAction) => void 
   return (
     <>
       <button onClick={() => act({ t: "undo" })} disabled={!view.undoLabel} title={view.undoLabel ?? ""}>
-        ↶ Undo{view.undoLabel ? `: ${view.undoLabel}` : ""}
+        <Undo2 size={18} aria-hidden /> Undo{view.undoLabel ? `: ${view.undoLabel}` : ""}
       </button>
       <button onClick={() => act({ t: "redo" })} disabled={!view.redoLabel} title={view.redoLabel ?? ""}>
-        ↷ Redo
+        <Redo2 size={18} aria-hidden /> Redo
       </button>
     </>
   );
@@ -434,10 +463,10 @@ function PlayersPanel({ view, act }: { view: HostView; act: (a: HostAction) => v
       <ul className="players">
         {view.players.map((p) => (
           <li key={p.id}>
-            <Avatar name={p.name} color={p.color} size={32} />
+            <PlayerAvatar name={p.name} color={p.color} size={32} />
             <span className="name">{p.name}</span>
             <span className={`dot ${p.online ? "on" : "off"}`} title={p.online ? "connected" : "disconnected"} />
-            <span className="score">{p.score}</span>
+            <Score value={p.score} className="score" />
             <button
               className="link"
               onClick={() => confirm(`Remove ${p.name} from the game? Their score will be lost.`) && act({ t: "kick", id: p.id })}
@@ -466,6 +495,8 @@ function Seg({ value, options, onChange, suffix = "" }: { value: number; options
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <Motion>
+      <App />
+    </Motion>
   </StrictMode>,
 );

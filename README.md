@@ -48,5 +48,10 @@ Cloudflare Workers Builds deploys every push to `main` with `npx wrangler deploy
 
 - `shared/`: code used by both server and screens. `types.ts` (data and messages), `game.ts` (rules, undo/redo, per-screen views), `tsv.ts` (file parsing), `format.ts` (safe rich text).
 - `worker/index.ts`: Worker (room creation, routing) and the `Room` Durable Object, one per room, which holds the game state and talks to every screen over WebSockets.
-- `web/`: the three screens (React): `player.tsx`, `host.tsx` (setup and Control), `display.tsx`.
+- `web/`: the three screens (React): `player.tsx`, `host.tsx` (setup and Control), `display.tsx`. `anim.tsx` holds the animated pieces (leaderboard, standings, confetti) and is only loaded by the TV and host screens, so the phone stays light.
 - `tests/`: unit tests.
+
+## Credits
+
+- Player avatars: "Critters" by [DiceBear](https://www.dicebear.com), CC0 1.0, generated from each player's name with `@dicebear/core`.
+- Animation: [Motion](https://motion.dev), [NumberFlow](https://number-flow.barvian.me), [canvas-confetti](https://github.com/catdad/canvas-confetti). Icons: [Lucide](https://lucide.dev). Fonts: Archivo and Archivo Black via [Fontsource](https://fontsource.org).

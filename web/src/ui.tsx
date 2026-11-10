@@ -1,41 +1,41 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
+// Fonts bundled with the app (no Google Fonts request, no flash of fallback text).
+import "@fontsource/archivo/latin-400.css";
+import "@fontsource/archivo/latin-500.css";
+import "@fontsource/archivo/latin-600.css";
+import "@fontsource/archivo/latin-700.css";
+import "@fontsource/archivo/latin-800.css";
+import "@fontsource/archivo-black/latin-400.css";
+import { Avatar, Style } from "@dicebear/core";
+import critters from "@dicebear/styles/critters.json";
 import QRCode from "qrcode";
 import { richHtml } from "../../shared/format";
 import { currentAnswerer, timerRemaining } from "../../shared/game";
 import type { PublicPlayer, QueueEntry, Timer } from "../../shared/types";
 
-function hashName(s: string): number {
-  let h = 2166136261;
-  for (const c of s.toLowerCase()) {
-    h ^= c.codePointAt(0)!;
-    h = Math.imul(h, 16777619);
+const critterStyle = new Style(critters as ConstructorParameters<typeof Style>[0]);
+const avatarCache = new Map<string, string>();
+
+function critterUri(name: string, color: string, animated: boolean): string {
+  const key = `${name}|${color}|${animated}`;
+  let uri = avatarCache.get(key);
+  if (!uri) {
+    uri = new Avatar(critterStyle, {
+      seed: name.trim().toLowerCase() || "?",
+      size: 128,
+      backgroundColor: color.replace("#", ""),
+      animationVariant: animated ? "slow" : "none",
+    }).toDataUri();
+    avatarCache.set(key, uri);
   }
-  return h >>> 0;
+  return uri;
 }
 
-/** Pixel critter: a mirrored 5x5 creature generated from the player's name. */
-export function Avatar({ name, color, size = 40 }: { name: string; color: string; size?: number }) {
-  const h = hashName(name || "?");
-  const cells: { x: number; y: number }[] = [];
-  for (let y = 0; y < 5; y++) {
-    for (let x = 0; x < 3; x++) {
-      const on = ((h >> (y * 3 + x)) & 1) === 1 || (y === 1 && x === 1) || (y === 2 && x === 2);
-      if (!on) continue;
-      cells.push({ x, y });
-      if (x < 2) cells.push({ x: 4 - x, y });
-    }
-  }
-  const px = 5.6;
-  const o = 6;
+/** DiceBear "Critters" avatar (CC0), generated from the player's name on their colour. */
+export function PlayerAvatar({ name, color, size = 40, animated = false }: { name: string; color: string; size?: number; animated?: boolean }) {
   return (
     <span className="avatar" style={{ background: color, width: size, height: size }} aria-hidden>
-      <svg viewBox="0 0 40 40" width={size} height={size} shapeRendering="crispEdges">
-        {cells.map((c) => (
-          <rect key={`${c.x}-${c.y}`} x={o + c.x * px} y={o + c.y * px} width={px} height={px} fill="#fff" />
-        ))}
-        <rect x={o + px + 1.6} y={o + px + 1.6} width={2.4} height={2.4} fill={color} />
-        <rect x={o + 3 * px + 1.6} y={o + px + 1.6} width={2.4} height={2.4} fill={color} />
-      </svg>
+      <img src={critterUri(name, color, animated)} width={size} height={size} alt="" draggable={false} />
     </span>
   );
 }
@@ -117,68 +117,3 @@ export function useToasts() {
   return { items, push };
 }
 
-export function Standings({ players, title }: { players: PublicPlayer[]; title?: ReactNode }) {
-  const sorted = [...players].sort((a, b) => b.score - a.score);
-  let rank = 0;
-  let prev: number | null = null;
-  return (
-    <div className="standings">
-      {title}
-      <ol>
-        {sorted.map((p, i) => {
-          if (p.score !== prev) rank = i + 1;
-          prev = p.score;
-          return (
-            <li key={p.id} className={rank === 1 ? "winner" : ""}>
-              <span className="rank">{rank}</span>
-              <Avatar name={p.name} color={p.color} size={44} />
-              <span className="name">{p.name}</span>
-              <span className="score">{p.score}</span>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
-
-export function ScoreStrip({ players }: { players: PublicPlayer[] }) {
-  return (
-    <div className="score-strip">
-      {players.map((p) => (
-        <div key={p.id} className="score-chip">
-          <Avatar name={p.name} color={p.color} size={36} />
-          <span className="name">{p.name}</span>
-          <span className="score">{p.score}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** Ranked leaderboard shown on the Display when the answer is revealed. */
-export function Leaderboard({ players, scoredId }: { players: PublicPlayer[]; scoredId?: string }) {
-  const sorted = [...players].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-  let rank = 0;
-  let prev: number | null = null;
-  return (
-    <section className="leaderboard" aria-label="Leaderboard">
-      <h2 className="leaderboard-title">Leaderboard</h2>
-      <ol>
-        {sorted.map((p, i) => {
-          if (p.score !== prev) rank = i + 1;
-          prev = p.score;
-          return (
-            <li key={p.id} className={`lb-row ${rank === 1 && p.score > 0 ? "lead" : ""} ${p.id === scoredId ? "scored" : ""}`}>
-              <span className="lb-rank">{rank}</span>
-              <Avatar name={p.name} color={p.color} size={48} />
-              <span className="lb-name">{p.name}</span>
-              {p.id === scoredId && <span className="lb-delta">+10</span>}
-              <span className="lb-score">{p.score}</span>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}

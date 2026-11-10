@@ -4,7 +4,8 @@ import { buzzerPhase, currentAnswerer } from "../../shared/game";
 import type { PlayerView } from "../../shared/types";
 import { useRoom, useServerNow } from "./net";
 import { buzzClick, keepScreenOn, unlockAudio, vibrate } from "./sound";
-import { Avatar, ConnPill, TimerBadge } from "./ui";
+import NumberFlow from "@number-flow/react";
+import { ConnPill, PlayerAvatar, TimerBadge } from "./ui";
 import "./styles.css";
 
 const store = {
@@ -175,13 +176,15 @@ function Game({ code, name, onLeave }: { code: string; name: string; onLeave: ()
   return (
     <main className="player-game">
       <header className="me">
-        {me ? <Avatar name={me.name} color={me.color} size={44} /> : <span className="avatar placeholder" />}
+        {me ? <PlayerAvatar name={me.name} color={me.color} size={44} /> : <span className="avatar placeholder" />}
         <div className="me-text">
           <div className="me-name">{me?.name ?? name}</div>
           <ConnPill status={status} />
         </div>
-        <div className="me-score" aria-label="Your score">
-          <span className="score-num">{me?.score ?? 0}</span>
+        <div className="me-score" role="status" aria-label={`Your score: ${me?.score ?? 0} points`}>
+          <span className="score-num" data-value={me?.score ?? 0}>
+            <NumberFlow value={me?.score ?? 0} aria-hidden />
+          </span>
           <span className="muted">points</span>
         </div>
       </header>

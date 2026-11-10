@@ -4,7 +4,9 @@ import { buzzerPhase, timerExpired } from "../../shared/game";
 import type { DisplayView } from "../../shared/types";
 import { useRoom, useServerNow } from "./net";
 import { buzzIn, keepScreenOn, timeUp, unlockAudio } from "./sound";
-import { Avatar, ConnPill, Qr, Rich, Leaderboard, Standings, TimerBadge, queueRows } from "./ui";
+import { Check, X } from "lucide-react";
+import { AnimatePresence, Leaderboard, Motion, Standings, burstCorrect, celebrateWinner, motion, useOnNewKey } from "./anim";
+import { ConnPill, PlayerAvatar, Qr, Rich, TimerBadge, queueRows } from "./ui";
 import "./styles.css";
 
 function textSizeClass(text: string): string {
@@ -42,6 +44,11 @@ function App() {
       timeUp();
     }
   }, [expired, q?.qid, q?.timer.duration, started]);
+
+  // Confetti: a correct answer, and the winner when the game ends.
+  const correctId = q?.queue.find((e) => e.mark === "correct")?.id;
+  useOnNewKey(started && q && correctId ? `${q.qid}:${correctId}` : null, burstCorrect);
+  useOnNewKey(started && view?.phase === "ended" ? `ended:${view.players.length}` : null, () => setTimeout(celebrateWinner, 350 * Math.max(1, view?.players.length ?? 1)));
 
   if (!code) {
     return (
@@ -95,12 +102,22 @@ function App() {
         </div>
         <div className="lobby-players">
           {view.players.length === 0 && <p className="muted">Waiting for players…</p>}
-          {view.players.map((p) => (
-            <div key={p.id} className={`lobby-player ${p.online ? "" : "offline"}`}>
-              <Avatar name={p.name} color={p.color} size={72} />
-              <span>{p.name}</span>
-            </div>
-          ))}
+          <AnimatePresence>
+            {view.players.map((p) => (
+              <motion.div
+                key={p.id}
+                layout
+                className={`lobby-player ${p.online ? "" : "offline"}`}
+                initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                animate={{ opacity: p.online ? 1 : 0.4, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: "spring", stiffness: 380, damping: 22 }}
+              >
+                <PlayerAvatar name={p.name} color={p.color} size={96} animated />
+                <span>{p.name}</span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </main>
     );
@@ -140,30 +157,47 @@ function App() {
             {q.image && <img className="q-image" src={q.image} alt="" referrerPolicy="no-referrer" />}
           </section>
 
-          {q.revealed && q.answer != null && (
-            <section className="answer-panel">
-              <span className="answer-label">Answer</span>
-              <Rich text={q.answer} className="answer-text" />
-            </section>
-          )}
+          <AnimatePresence>
+            {q.revealed && q.answer != null && (
+              <motion.section
+                key={`answer-${q.qid}`}
+                className="answer-panel"
+                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "spring", stiffness: 340, damping: 26 }}
+              >
+                <span className="answer-label">Answer</span>
+                <Rich text={q.answer} className="answer-text" />
+              </motion.section>
+            )}
+          </AnimatePresence>
 
-          {rows.length > 0 && (
-            <ol className="buzz-order">
+          <ol className="buzz-order">
+            <AnimatePresence initial={false}>
               {rows.map((r) => (
-                <li key={r.entry.id} className={`buzz-row ${r.answering && r.settled ? "answering" : ""} ${r.entry.mark ?? ""}`}>
+                <motion.li
+                  key={`${q.qid}-${r.entry.id}`}
+                  layout
+                  initial={{ opacity: 0, scale: 0.6, y: 20 }}
+                  animate={{ opacity: r.entry.mark === "wrong" ? 0.45 : 1, scale: r.answering && r.settled ? 1.06 : 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                  className={`buzz-row ${r.answering && r.settled ? "answering" : ""} ${r.entry.mark ?? ""}`}
+                >
                   <span className="place">{r.place}</span>
-                  {r.player && <Avatar name={r.player.name} color={r.player.color} size={44} />}
+                  {r.player && <PlayerAvatar name={r.player.name} color={r.player.color} size={44} animated={r.answering && r.settled} />}
                   <span className="name">{r.player?.name ?? "?"}</span>
                   <span className="gap">{r.place === 1 ? "first" : `+${(r.gapMs / 1000).toFixed(2)} s`}</span>
-                  {r.entry.mark === "correct" && <span className="mark">✓</span>}
-                  {r.entry.mark === "wrong" && <span className="mark">✗</span>}
-                </li>
+                  {r.entry.mark === "correct" && <Check className="mark" aria-label="correct" strokeWidth={3} />}
+                  {r.entry.mark === "wrong" && <X className="mark" aria-label="wrong" strokeWidth={3} />}
+                </motion.li>
               ))}
-            </ol>
-          )}
+            </AnimatePresence>
+          </ol>
         </div>
 
-        {q.revealed && <Leaderboard players={view.players} scoredId={q.queue.find((e) => e.mark === "correct")?.id} />}
+        <AnimatePresence>{q.revealed && <Leaderboard key={`lb-${q.qid}`} players={view.players} scoredId={correctId} />}</AnimatePresence>
       </div>
 
       {view.nextImage && <img src={view.nextImage} alt="" referrerPolicy="no-referrer" className="preload" />}
@@ -173,6 +207,8 @@ function App() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <Motion>
+      <App />
+    </Motion>
   </StrictMode>,
 );
