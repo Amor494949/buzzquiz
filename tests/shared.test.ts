@@ -12,7 +12,7 @@ import {
   playerView,
   timerRemaining,
 } from "../shared/game";
-import { BUZZ_DELAY_MS, SETTLE_MS, type RoomState } from "../shared/types";
+import { BUZZ_LEAD_MS, SETTLE_MS, type RoomState } from "../shared/types";
 
 const FULL = [
   "roundNo\tquestionNo\tquestionText\tanswerText\timageUrl",
@@ -89,9 +89,12 @@ function setup(): { s: RoomState; t0: number } {
   joinPlayer(s, "secret-c", "Ana", 4);
   const t0 = 1_000_000;
   expect(applyHost(s, { t: "start" }, t0)).toBeNull();
+  expect(applyHost(s, { t: "timerStart" }, t0 + READ_MS)).toBeNull();
   return { s, t0 };
 }
-const open = (t0: number) => t0 + BUZZ_DELAY_MS;
+// The host finishes reading and starts the timer 3 s in; buzzers open BUZZ_LEAD_MS later.
+const READ_MS = 3000;
+const open = (t0: number) => t0 + READ_MS + BUZZ_LEAD_MS;
 const idOf = (s: RoomState, pid: string) => s.players[pid].id;
 
 describe("game", () => {
@@ -103,6 +106,20 @@ describe("game", () => {
     expect(joinPlayer(s, "e", "E", 4)).toBe("Room is full");
     expect(joinPlayer(s, "secret-a", "Priya 2", 4)).toBeNull(); // rejoin is fine
     expect(s.players["secret-a"].name).toBe("Priya 2");
+  });
+
+  it("keeps buzzers locked until the host starts the timer", () => {
+    const { quiz } = parseQuiz(FULL, "Test");
+    const s = newRoom("ABCD", "key", quiz, 0);
+    joinPlayer(s, "secret-a", "Priya", 4);
+    applyHost(s, { t: "start" }, 1000);
+    expect(s.game.current!.buzzOpenAt).toBeNull();
+    expect(applyBuzz(s, "secret-a", "q1", 60_000, 60_000)).toBeNull(); // reading takes as long as it takes
+    applyHost(s, { t: "timerStart" }, 60_000);
+    const openAt = 60_000 + BUZZ_LEAD_MS;
+    expect(s.game.current!.buzzOpenAt).toBe(openAt);
+    expect(timerRemaining(s.game.current!.timer, openAt)).toBe(30_000); // clock starts with the buzzers
+    expect(applyBuzz(s, "secret-a", "q1", openAt + 50, openAt + 90)).toBe(1);
   });
 
   it("ignores buzzes before buzzers open", () => {

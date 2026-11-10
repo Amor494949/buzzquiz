@@ -308,7 +308,7 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
               <TimerBadge timer={q.timer} now={now} large />
               <div className="timer-buttons">
                 <button className="primary" onClick={() => act({ t: q.timer.startedAt != null ? "timerPause" : "timerStart" })}>
-                  {q.timer.startedAt != null ? "Pause" : q.timer.elapsedBefore > 0 ? "Resume" : "Start timer"}
+                  {q.timer.startedAt != null ? "Pause" : q.buzzOpenAt == null ? "Start timer & open buzzers" : "Resume timer"}
                 </button>
                 <button onClick={() => act({ t: "timerAdd", ms: -10_000 })}>−10s</button>
                 <button onClick={() => act({ t: "timerAdd", ms: 10_000 })}>+10s</button>
@@ -324,7 +324,7 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
                 {rows.map((r) => (
                   <li key={r.entry.id} className={`queue-row ${r.answering ? "answering" : ""} ${r.entry.mark ?? ""}`}>
                     <span className="place">{r.place}</span>
-                    {r.player && <Avatar emoji={r.player.emoji} color={r.player.color} size={32} />}
+                    {r.player && <Avatar name={r.player.name} color={r.player.color} size={32} />}
                     <span className="name">{r.player?.name ?? "(removed)"}</span>
                     <span className="gap muted">{r.place === 1 ? "first" : `+${r.gapMs} ms`}</span>
                     <span className="state">
@@ -385,10 +385,9 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
 function BuzzStatus({ view, now }: { view: HostView; now: number }) {
   const q = view.q!;
   const phase = buzzerPhase(q, view.players.map((p) => p.id), now);
-  const opensIn = Math.max(0, Math.ceil((q.buzzOpenAt - now) / 1000));
   const text = {
     waiting: "",
-    locked: `Buzzers open in ${opensIn}`,
+    locked: q.buzzOpenAt == null ? "Buzzers locked: start the timer when you finish reading" : "Opening…",
     open: "Buzzers open",
     closed: "Time's up: buzzers closed",
     resolved: "Question resolved",
@@ -435,7 +434,7 @@ function PlayersPanel({ view, act }: { view: HostView; act: (a: HostAction) => v
       <ul className="players">
         {view.players.map((p) => (
           <li key={p.id}>
-            <Avatar emoji={p.emoji} color={p.color} size={32} />
+            <Avatar name={p.name} color={p.color} size={32} />
             <span className="name">{p.name}</span>
             <span className={`dot ${p.online ? "on" : "off"}`} title={p.online ? "connected" : "disconnected"} />
             <span className="score">{p.score}</span>

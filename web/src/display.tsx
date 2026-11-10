@@ -97,7 +97,7 @@ function App() {
           {view.players.length === 0 && <p className="muted">Waiting for players…</p>}
           {view.players.map((p) => (
             <div key={p.id} className={`lobby-player ${p.online ? "" : "offline"}`}>
-              <Avatar emoji={p.emoji} color={p.color} size={72} />
+              <Avatar name={p.name} color={p.color} size={72} />
               <span>{p.name}</span>
             </div>
           ))}
@@ -116,10 +116,9 @@ function App() {
 
   const phase = buzzerPhase(q, [], now);
   const rows = queueRows(q.queue, view.players, now);
-  const opensIn = Math.max(0, Math.ceil((q.buzzOpenAt - now) / 1000));
   const pill =
     phase === "locked"
-      ? { cls: "locked", text: `Buzzers open in ${opensIn}` }
+      ? { cls: "locked", text: q.buzzOpenAt == null ? "Listen to the question" : "Get ready…" }
       : phase === "open"
         ? { cls: "open", text: "Buzzers OPEN" }
         : phase === "resolved"
@@ -153,7 +152,7 @@ function App() {
               {rows.map((r) => (
                 <li key={r.entry.id} className={`buzz-row ${r.answering && r.settled ? "answering" : ""} ${r.entry.mark ?? ""}`}>
                   <span className="place">{r.place}</span>
-                  {r.player && <Avatar emoji={r.player.emoji} color={r.player.color} size={44} />}
+                  {r.player && <Avatar name={r.player.name} color={r.player.color} size={44} />}
                   <span className="name">{r.player?.name ?? "?"}</span>
                   <span className="gap">{r.place === 1 ? "first" : `+${(r.gapMs / 1000).toFixed(2)} s`}</span>
                   {r.entry.mark === "correct" && <span className="mark">✓</span>}

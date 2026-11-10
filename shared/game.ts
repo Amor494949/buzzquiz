@@ -3,7 +3,7 @@
 
 import {
   AVATARS,
-  BUZZ_DELAY_MS,
+  BUZZ_LEAD_MS,
   MAX_TRAVEL_MS,
   POINTS,
   SETTLE_MS,
@@ -67,7 +67,7 @@ export function buzzerPhase(
 ): BuzzerPhase {
   if (!q) return "waiting";
   if (isResolved(q, playerIds)) return "resolved";
-  if (now < q.buzzOpenAt) return "locked";
+  if (q.buzzOpenAt == null || now < q.buzzOpenAt) return "locked";
   if (timerExpired(q.timer, now)) return "closed";
   return "open";
 }
@@ -92,7 +92,7 @@ function freshQuestion(qid: string, kind: QState["kind"], defaultTimer: number, 
     qid,
     kind,
     shownAt: now,
-    buzzOpenAt: now + BUZZ_DELAY_MS,
+    buzzOpenAt: null,
     timer: { duration: defaultTimer * 1000, startedAt: null, elapsedBefore: 0 },
     buzzes: [],
     marks: {},
@@ -131,6 +131,7 @@ function restore(s: RoomState, snap: { scores: Record<string, number>; game: Gam
   if (live && game.current && game.current.qid === live.qid) {
     game.current.buzzes = clone(live.buzzes);
     game.current.timer = clone(live.timer);
+    game.current.buzzOpenAt = live.buzzOpenAt;
   }
   s.game = game;
   for (const p of Object.values(s.players)) {
@@ -178,7 +179,7 @@ export function applyBuzz(s: RoomState, pid: string, qid: string, est: number, n
   const p = s.players[pid];
   const q = s.game.current;
   if (!p || !q || s.game.phase !== "question" || q.qid !== qid) return null;
-  if (now < q.buzzOpenAt - 100) return null; // early (allow small clock error)
+  if (q.buzzOpenAt == null || now < q.buzzOpenAt - 100) return null; // not open yet (allow small clock error)
   if (isResolved({ queue: queueOf(q) }, playerIds(s))) return null;
   if (timerExpired(q.timer, now - SETTLE_MS)) return null;
   if (q.buzzes.some((b) => b.id === p.id)) return null;
@@ -287,7 +288,15 @@ export function applyHost(s: RoomState, a: HostAction, now: number): string | nu
     // Timer controls are not undoable: the opposite button reverses them.
     case "timerStart": {
       if (!q) return "No question showing";
-      if (q.timer.startedAt == null && timerRemaining(q.timer, now) > 0) q.timer.startedAt = now;
+      if (q.timer.startedAt == null && timerRemaining(q.timer, now) > 0) {
+        // First start: the host has finished reading, so buzzers open with the clock.
+        if (q.buzzOpenAt == null) {
+          q.buzzOpenAt = now + BUZZ_LEAD_MS;
+          q.timer.startedAt = now + BUZZ_LEAD_MS;
+        } else {
+          q.timer.startedAt = now;
+        }
+      }
       return null;
     }
     case "timerPause": {

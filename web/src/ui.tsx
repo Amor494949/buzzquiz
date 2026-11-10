@@ -4,10 +4,38 @@ import { richHtml } from "../../shared/format";
 import { currentAnswerer, timerRemaining } from "../../shared/game";
 import type { PublicPlayer, QueueEntry, Timer } from "../../shared/types";
 
-export function Avatar({ emoji, color, size = 40 }: { emoji: string; color: string; size?: number }) {
+function hashName(s: string): number {
+  let h = 2166136261;
+  for (const c of s.toLowerCase()) {
+    h ^= c.codePointAt(0)!;
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** Pixel critter: a mirrored 5x5 creature generated from the player's name. */
+export function Avatar({ name, color, size = 40 }: { name: string; color: string; size?: number }) {
+  const h = hashName(name || "?");
+  const cells: { x: number; y: number }[] = [];
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 3; x++) {
+      const on = ((h >> (y * 3 + x)) & 1) === 1 || (y === 1 && x === 1) || (y === 2 && x === 2);
+      if (!on) continue;
+      cells.push({ x, y });
+      if (x < 2) cells.push({ x: 4 - x, y });
+    }
+  }
+  const px = 5.6;
+  const o = 6;
   return (
-    <span className="avatar" style={{ background: color, width: size, height: size, fontSize: size * 0.55 }} aria-hidden>
-      {emoji}
+    <span className="avatar" style={{ background: color, width: size, height: size }} aria-hidden>
+      <svg viewBox="0 0 40 40" width={size} height={size} shapeRendering="crispEdges">
+        {cells.map((c) => (
+          <rect key={`${c.x}-${c.y}`} x={o + c.x * px} y={o + c.y * px} width={px} height={px} fill="#fff" />
+        ))}
+        <rect x={o + px + 1.6} y={o + px + 1.6} width={2.4} height={2.4} fill={color} />
+        <rect x={o + 3 * px + 1.6} y={o + px + 1.6} width={2.4} height={2.4} fill={color} />
+      </svg>
     </span>
   );
 }
@@ -103,7 +131,7 @@ export function Standings({ players, title }: { players: PublicPlayer[]; title?:
           return (
             <li key={p.id} className={rank === 1 ? "winner" : ""}>
               <span className="rank">{rank}</span>
-              <Avatar emoji={p.emoji} color={p.color} size={44} />
+              <Avatar name={p.name} color={p.color} size={44} />
               <span className="name">{p.name}</span>
               <span className="score">{p.score}</span>
             </li>
@@ -119,7 +147,7 @@ export function ScoreStrip({ players }: { players: PublicPlayer[] }) {
     <div className="score-strip">
       {players.map((p) => (
         <div key={p.id} className="score-chip">
-          <Avatar emoji={p.emoji} color={p.color} size={36} />
+          <Avatar name={p.name} color={p.color} size={36} />
           <span className="name">{p.name}</span>
           <span className="score">{p.score}</span>
         </div>
@@ -143,7 +171,7 @@ export function Leaderboard({ players, scoredId }: { players: PublicPlayer[]; sc
           return (
             <li key={p.id} className={`lb-row ${rank === 1 && p.score > 0 ? "lead" : ""} ${p.id === scoredId ? "scored" : ""}`}>
               <span className="lb-rank">{rank}</span>
-              <Avatar emoji={p.emoji} color={p.color} size={48} />
+              <Avatar name={p.name} color={p.color} size={48} />
               <span className="lb-name">{p.name}</span>
               {p.id === scoredId && <span className="lb-delta">+10</span>}
               <span className="lb-score">{p.score}</span>

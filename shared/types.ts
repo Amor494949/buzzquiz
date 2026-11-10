@@ -42,7 +42,7 @@ export interface QState {
   qid: string;
   kind: "main" | "spare";
   shownAt: number;
-  buzzOpenAt: number;
+  buzzOpenAt: number | null; // null until the host starts the timer
   timer: Timer;
   buzzes: Buzz[];
   marks: Record<string, Mark>; // by public player id
@@ -74,20 +74,23 @@ export interface RoomState {
   redo: Snapshot[];
 }
 
+// Avatar colours; each player's pixel critter is drawn from their name.
 export const AVATARS = [
-  { emoji: "🦊", color: "#E8590C" },
-  { emoji: "🐼", color: "#495057" },
-  { emoji: "🐸", color: "#2F9E44" },
-  { emoji: "🐙", color: "#C2255C" },
-  { emoji: "🦉", color: "#7048E8" },
-  { emoji: "🐳", color: "#1971C2" },
-  { emoji: "🦁", color: "#E67700" },
-  { emoji: "🐧", color: "#0C8599" },
+  { color: "#E8590C" },
+  { color: "#3B5BDB" },
+  { color: "#2B8A3E" },
+  { color: "#C2255C" },
+  { color: "#7048E8" },
+  { color: "#0C8599" },
+  { color: "#D9480F" },
+  { color: "#5C677D" },
 ] as const;
 
 export const MAX_PLAYERS = 4;
 export const POINTS = 10;
-export const BUZZ_DELAY_MS = 5000;
+// When the host starts the timer, buzzers open this long later, so every phone
+// hears the opening time before it happens (fair even on slower connections).
+export const BUZZ_LEAD_MS = 800;
 export const SETTLE_MS = 200; // wait this long after a tap before naming the answerer
 export const MAX_TRAVEL_MS = 1000; // clamp for tap-time estimates
 
@@ -119,7 +122,6 @@ export type ClientMsg =
 export interface PublicPlayer {
   id: string;
   name: string;
-  emoji: string;
   color: string;
   score: number;
   online: boolean;
@@ -136,7 +138,7 @@ export interface PublicQuestion {
   kind: "main" | "spare";
   n: number;
   total: number;
-  buzzOpenAt: number;
+  buzzOpenAt: number | null;
   timer: Timer;
   queue: QueueEntry[]; // sorted by tap time
   revealed: boolean;
@@ -171,7 +173,7 @@ export interface HostView extends Omit<DisplayView, "t" | "q"> {
 
 export interface PlayerView {
   t: "player";
-  me: { id: string; name: string; emoji: string; color: string; score: number };
+  me: { id: string; name: string; color: string; score: number };
   phase: Game["phase"];
   q: PublicQuestion | null;
 }

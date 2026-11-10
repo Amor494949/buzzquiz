@@ -136,11 +136,10 @@ function Game({ code, name, onLeave }: { code: string; name: string; onLeave: ()
   else state = "open";
 
   const place = myEntry ? q!.queue.findIndex((e) => e.id === myEntry.id) + 1 : null;
-  const opensIn = q ? Math.max(0, Math.ceil((q.buzzOpenAt - now) / 1000)) : 0;
 
   const status_text: Record<typeof state, string> = {
     waiting: "Waiting for the host…",
-    locked: `Get ready… ${opensIn > 0 ? `buzzers open in ${opensIn}` : ""}`,
+    locked: q?.buzzOpenAt == null ? "Listen to the question…" : "Get ready…",
     open: "Buzzers open!",
     queued: place ? `You buzzed · #${place} in the queue` : "You buzzed!",
     answering: "Your turn: answer now!",
@@ -176,7 +175,7 @@ function Game({ code, name, onLeave }: { code: string; name: string; onLeave: ()
   return (
     <main className="player-game">
       <header className="me">
-        {me ? <Avatar emoji={me.emoji} color={me.color} size={44} /> : <span className="avatar placeholder" />}
+        {me ? <Avatar name={me.name} color={me.color} size={44} /> : <span className="avatar placeholder" />}
         <div className="me-text">
           <div className="me-name">{me?.name ?? name}</div>
           <ConnPill status={status} />
