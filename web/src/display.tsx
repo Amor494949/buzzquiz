@@ -4,7 +4,7 @@ import { buzzerPhase, timerExpired } from "../../shared/game";
 import type { DisplayView } from "../../shared/types";
 import { useRoom, useServerNow } from "./net";
 import { buzzIn, keepScreenOn, timeUp, unlockAudio } from "./sound";
-import { Avatar, ConnPill, Qr, Rich, ScoreStrip, Standings, TimerBadge, queueRows } from "./ui";
+import { Avatar, ConnPill, Qr, Rich, Leaderboard, Standings, TimerBadge, queueRows } from "./ui";
 import "./styles.css";
 
 function textSizeClass(text: string): string {
@@ -134,35 +134,38 @@ function App() {
         <TimerBadge timer={q.timer} now={now} large />
       </header>
 
-      <section className={`display-body ${q.image ? "with-image" : ""}`}>
-        <Rich text={q.text} className={`q-text ${textSizeClass(q.text)}`} images={false} />
-        {q.image && <img className="q-image" src={q.image} alt="" referrerPolicy="no-referrer" />}
-      </section>
+      <div className={`display-main ${q.revealed ? "revealed" : ""}`}>
+        <div className="display-left">
+          <section className={`display-body ${q.image ? "with-image" : ""}`}>
+            <Rich text={q.text} className={`q-text ${textSizeClass(q.text)}`} images={false} />
+            {q.image && <img className="q-image" src={q.image} alt="" referrerPolicy="no-referrer" />}
+          </section>
 
-      {q.revealed && q.answer != null && (
-        <section className="answer-panel">
-          <span className="answer-label">Answer</span>
-          <Rich text={q.answer} className="answer-text" />
-        </section>
-      )}
+          {q.revealed && q.answer != null && (
+            <section className="answer-panel">
+              <span className="answer-label">Answer</span>
+              <Rich text={q.answer} className="answer-text" />
+            </section>
+          )}
 
-      <footer className="display-foot">
-        {rows.length > 0 && (
-          <ol className="buzz-order">
-            {rows.map((r) => (
-              <li key={r.entry.id} className={`buzz-row ${r.answering && r.settled ? "answering" : ""} ${r.entry.mark ?? ""}`}>
-                <span className="place">{r.place}</span>
-                {r.player && <Avatar emoji={r.player.emoji} color={r.player.color} size={44} />}
-                <span className="name">{r.player?.name ?? "?"}</span>
-                <span className="gap">{r.place === 1 ? "first" : `+${(r.gapMs / 1000).toFixed(2)} s`}</span>
-                {r.entry.mark === "correct" && <span className="mark">✓</span>}
-                {r.entry.mark === "wrong" && <span className="mark">✗</span>}
-              </li>
-            ))}
-          </ol>
-        )}
-        {q.revealed && <ScoreStrip players={view.players} />}
-      </footer>
+          {rows.length > 0 && (
+            <ol className="buzz-order">
+              {rows.map((r) => (
+                <li key={r.entry.id} className={`buzz-row ${r.answering && r.settled ? "answering" : ""} ${r.entry.mark ?? ""}`}>
+                  <span className="place">{r.place}</span>
+                  {r.player && <Avatar emoji={r.player.emoji} color={r.player.color} size={44} />}
+                  <span className="name">{r.player?.name ?? "?"}</span>
+                  <span className="gap">{r.place === 1 ? "first" : `+${(r.gapMs / 1000).toFixed(2)} s`}</span>
+                  {r.entry.mark === "correct" && <span className="mark">✓</span>}
+                  {r.entry.mark === "wrong" && <span className="mark">✗</span>}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        {q.revealed && <Leaderboard players={view.players} scoredId={q.queue.find((e) => e.mark === "correct")?.id} />}
+      </div>
 
       {view.nextImage && <img src={view.nextImage} alt="" referrerPolicy="no-referrer" className="preload" />}
     </main>

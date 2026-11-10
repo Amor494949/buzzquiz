@@ -220,3 +220,23 @@ label { display: block; margin: 16px 0; font-weight: 600; }
 .score-chip { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px 16px 6px 8px; font-size: clamp(16px, 1.5vw, 26px); }
 .score-chip .score { font-weight: 800; font-variant-numeric: tabular-nums; }
 .preload { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* ---------- Display: reveal layout with leaderboard ---------- */
+.display-main { flex: 1; min-height: 0; display: grid; gap: 3vw; }
+.display-main.revealed { grid-template-columns: minmax(0, 1fr) minmax(300px, 30vw); }
+.display-left { min-height: 0; display: flex; flex-direction: column; gap: 2.5vh; }
+.display-main.revealed .q-lg { font-size: clamp(22px, 2.6vw, 46px); }
+.display-main.revealed .q-md { font-size: clamp(20px, 2.2vw, 40px); }
+.display-main.revealed .q-sm { font-size: clamp(18px, 1.9vw, 34px); }
+.display-main.revealed .q-xs { font-size: clamp(16px, 1.6vw, 30px); }
+.leaderboard { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 2.4vh 1.6vw; align-self: start; animation: pop .25s ease-out; }
+.leaderboard-title { font-size: clamp(14px, 1.2vw, 22px); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 1.6vh; }
+.leaderboard ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.2vh; }
+.lb-row { display: grid; grid-template-columns: 1.6em auto 1fr auto auto; align-items: center; gap: 14px; padding: 1vh 1vw; border-radius: 14px; font-size: clamp(18px, 1.7vw, 32px); }
+.lb-rank { font-weight: 900; color: var(--muted); text-align: center; }
+.lb-name { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-score { font-weight: 900; font-variant-numeric: tabular-nums; }
+.lb-delta { font-size: .7em; font-weight: 800; color: #1e7b34; background: var(--green-soft); border-radius: 99px; padding: 2px 10px; }
+.lb-row.lead { background: var(--amber-soft); }
+.lb-row.lead .lb-rank { color: #8a6100; }
+.lb-row.scored { outline: 3px solid var(--green); }

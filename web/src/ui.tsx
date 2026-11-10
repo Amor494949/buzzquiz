@@ -127,3 +127,30 @@ export function ScoreStrip({ players }: { players: PublicPlayer[] }) {
     </div>
   );
 }
+
+/** Ranked leaderboard shown on the Display when the answer is revealed. */
+export function Leaderboard({ players, scoredId }: { players: PublicPlayer[]; scoredId?: string }) {
+  const sorted = [...players].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  let rank = 0;
+  let prev: number | null = null;
+  return (
+    <section className="leaderboard" aria-label="Leaderboard">
+      <h2 className="leaderboard-title">Leaderboard</h2>
+      <ol>
+        {sorted.map((p, i) => {
+          if (p.score !== prev) rank = i + 1;
+          prev = p.score;
+          return (
+            <li key={p.id} className={`lb-row ${rank === 1 && p.score > 0 ? "lead" : ""} ${p.id === scoredId ? "scored" : ""}`}>
+              <span className="lb-rank">{rank}</span>
+              <Avatar emoji={p.emoji} color={p.color} size={48} />
+              <span className="lb-name">{p.name}</span>
+              {p.id === scoredId && <span className="lb-delta">+10</span>}
+              <span className="lb-score">{p.score}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
