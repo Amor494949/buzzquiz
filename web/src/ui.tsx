@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-// Fonts bundled with the app (no Google Fonts request, no flash of fallback text).
-import "@fontsource/archivo/latin-400.css";
-import "@fontsource/archivo/latin-500.css";
-import "@fontsource/archivo/latin-600.css";
-import "@fontsource/archivo/latin-700.css";
-import "@fontsource/archivo/latin-800.css";
-import "@fontsource/archivo-black/latin-400.css";
+// Fonts bundled with the app: Chakra Petch (HUD labels and names), JetBrains Mono (numbers), Inter (question text).
+import "@fontsource/chakra-petch/latin-500.css";
+import "@fontsource/chakra-petch/latin-600.css";
+import "@fontsource/chakra-petch/latin-700.css";
+import "@fontsource/jetbrains-mono/latin-500.css";
+import "@fontsource/jetbrains-mono/latin-700.css";
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/inter/latin-700.css";
 import { Avatar, Style } from "@dicebear/core";
 import critters from "@dicebear/styles/critters.json";
 import QRCode from "qrcode";
@@ -49,13 +52,23 @@ export function formatClock(ms: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export function TimerBadge({ timer, now, large }: { timer: Timer; now: number; large?: boolean }) {
+export function TimerBadge({ timer, now, large, bar }: { timer: Timer; now: number; large?: boolean; bar?: boolean }) {
   const left = timerRemaining(timer, now);
   const running = timer.startedAt != null && left > 0;
   const state = left <= 0 && (timer.startedAt != null || timer.elapsedBefore > 0) ? "up" : running ? (left <= 5000 ? "low" : "run") : "idle";
-  return (
+  const badge = (
     <span className={`timer timer-${state} ${large ? "timer-large" : ""}`} role="timer" aria-label={`${Math.ceil(left / 1000)} seconds left`}>
-      {state === "up" ? "Time's up" : formatClock(left)}
+      {state === "up" ? "TIME" : formatClock(left)}
+    </span>
+  );
+  if (!bar) return badge;
+  const pct = timer.duration > 0 ? Math.max(0, Math.min(100, (left / timer.duration) * 100)) : 0;
+  return (
+    <span className="timer-wrap">
+      {badge}
+      <span className={`timer-bar ${state === "idle" ? "idle" : ""}`} aria-hidden>
+        <i style={{ width: `${pct}%` }} />
+      </span>
     </span>
   );
 }

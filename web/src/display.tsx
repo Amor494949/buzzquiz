@@ -93,7 +93,7 @@ function App() {
         <h1 className="display-title">{view.title}</h1>
         <div className="lobby-grid">
           <div className="lobby-join">
-            <p className="muted">Join on your phone</p>
+            <p className="muted">Join on your phone at</p>
             <p className="join-url">{location.host}</p>
             <p className="muted">Room code</p>
             <p className="room-code">{view.code}</p>
@@ -135,19 +135,29 @@ function App() {
   const rows = queueRows(q.queue, view.players, now);
   const pill =
     phase === "locked"
-      ? { cls: "locked", text: q.buzzOpenAt == null ? "Listen to the question" : "Get ready…" }
+      ? { cls: "locked", text: q.buzzOpenAt == null ? "Stand by" : "Get ready" }
       : phase === "open"
-        ? { cls: "open", text: "Buzzers OPEN" }
+        ? { cls: "open", text: "Buzzers live" }
         : phase === "resolved"
-          ? { cls: "done", text: "Answered" }
-          : { cls: "closed", text: "Buzzers closed" };
+          ? { cls: "done", text: "Round won" }
+          : { cls: "closed", text: "Time" };
 
   return (
     <main className="display question">
       <header className="display-head">
-        <span className="qnum">{q.kind === "spare" ? `Spare ${q.n}` : `Q${q.n} / ${q.total}`}</span>
+        <span className="qnum">
+          {q.kind === "spare" ? (
+            <>
+              Spare <b>{q.n}</b>
+            </>
+          ) : (
+            <>
+              Question <b>{String(q.n).padStart(2, "0")}</b> / {q.total}
+            </>
+          )}
+        </span>
         <span className={`pill pill-${pill.cls}`}>{pill.text}</span>
-        <TimerBadge timer={q.timer} now={now} large />
+        <TimerBadge timer={q.timer} now={now} large bar />
       </header>
 
       <div className={`display-main ${q.revealed ? "revealed" : ""}`}>

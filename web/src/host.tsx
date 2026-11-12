@@ -316,7 +316,7 @@ function Control({ code, hostKey }: { code: string; hostKey: string }) {
           <section className="panel live-panel">
             <BuzzStatus view={view} now={now} />
             <div className="timer-row">
-              <TimerBadge timer={q.timer} now={now} large />
+              <TimerBadge timer={q.timer} now={now} large bar />
               <div className="timer-buttons">
                 <button className="primary" onClick={() => act({ t: q.timer.startedAt != null ? "timerPause" : "timerStart" })}>
                   {q.timer.startedAt != null ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
@@ -464,7 +464,10 @@ function PlayersPanel({ view, act }: { view: HostView; act: (a: HostAction) => v
         {view.players.map((p) => (
           <li key={p.id}>
             <PlayerAvatar name={p.name} color={p.color} size={32} />
-            <span className="name">{p.name}</span>
+            <span className="name">
+              {p.name}
+              {p.streak >= 2 && <span className="streak-tag">{p.streak} streak</span>}
+            </span>
             <span className={`dot ${p.online ? "on" : "off"}`} title={p.online ? "connected" : "disconnected"} />
             <Score value={p.score} className="score" />
             <button

@@ -54,4 +54,4 @@ Cloudflare Workers Builds deploys every push to `main` with `npx wrangler deploy
 ## Credits
 
 - Player avatars: "Critters" by [DiceBear](https://www.dicebear.com), CC0 1.0, generated from each player's name with `@dicebear/core`.
-- Animation: [Motion](https://motion.dev), [NumberFlow](https://number-flow.barvian.me), [canvas-confetti](https://github.com/catdad/canvas-confetti). Icons: [Lucide](https://lucide.dev). Fonts: Archivo and Archivo Black via [Fontsource](https://fontsource.org).
+- Animation: [Motion](https://motion.dev), [NumberFlow](https://number-flow.barvian.me), [canvas-confetti](https://github.com/catdad/canvas-confetti). Icons: [Lucide](https://lucide.dev). Fonts: Chakra Petch, JetBrains Mono and Inter via [Fontsource](https://fontsource.org).

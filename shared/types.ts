@@ -55,6 +55,7 @@ export interface Game {
   current: QState | null;
   played: Record<string, QState>; // questions already left, by qid
   defaultTimer: number; // seconds
+  wins?: { qid: string; id: string }[]; // who got each question right, in the order it happened (for streaks)
 }
 
 export interface Snapshot {
@@ -125,6 +126,7 @@ export interface PublicPlayer {
   color: string;
   score: number;
   online: boolean;
+  streak: number; // consecutive questions won (0 or 1 = no streak)
 }
 
 export interface QueueEntry {

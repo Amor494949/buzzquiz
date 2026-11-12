@@ -25,8 +25,9 @@
   "dependencies": {
     "@dicebear/core": "^10.7.0",
     "@dicebear/styles": "^10.6.0",
-    "@fontsource/archivo": "^5.3.0",
-    "@fontsource/archivo-black": "^5.3.0",
+    "@fontsource/chakra-petch": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@number-flow/react": "^0.6.2",
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.71.0",

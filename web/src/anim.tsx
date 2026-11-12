@@ -51,7 +51,19 @@ export function Leaderboard({ players, scoredId, points = 10 }: { players: Publi
     return () => clearTimeout(t);
   }, [scoredId]);
 
-  const shown = players.map((p) => ({ ...p, score: !settled && p.id === scoredId ? p.score - points : p.score }));
+  const before = players.map((p) => ({ ...p, score: p.id === scoredId ? p.score - points : p.score }));
+  const prevRank = new Map(ranked(before).map((r) => [r.id, r.rank]));
+  const newRank = new Map(ranked(players).map((r) => [r.id, r.rank]));
+  const scorerBefore = before.find((p) => p.id === scoredId)?.score;
+  const scorerAfter = players.find((p) => p.id === scoredId)?.score;
+  // Places moved: the scorer climbs by however many ranks they gained; anyone else
+  // drops one place only if the scorer was strictly behind them and is now strictly ahead.
+  const moveOf = (p: PublicPlayer): number => {
+    if (scoredId == null || scorerBefore == null || scorerAfter == null) return 0;
+    if (p.id === scoredId) return (prevRank.get(p.id) ?? 0) - (newRank.get(p.id) ?? 0);
+    return scorerBefore < p.score && scorerAfter > p.score ? -1 : 0;
+  };
+  const shown = settled ? players : before;
   const order = ranked(shown);
   const byId = new Map(shown.map((p) => [p.id, p]));
 
@@ -79,20 +91,27 @@ export function Leaderboard({ players, scoredId, points = 10 }: { players: Publi
             >
               <span className="lb-rank">{rank}</span>
               <PlayerAvatar name={p.name} color={p.color} size={48} animated />
-              <span className="lb-name">{p.name}</span>
-              <AnimatePresence>
-                {id === scoredId && settled && (
-                  <motion.span className="lb-delta" initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={spring}>
-                    +{points}
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <span className="lb-name">
+                {p.name}
+                {settled && p.streak >= 2 && <span className="streak-tag">{p.streak} streak</span>}
+              </span>
+              <RankMove delta={moveOf(players.find((x) => x.id === id)!)} show={settled} />
               <Score value={p.score} className="lb-score" />
             </motion.li>
           );
         })}
       </ol>
     </motion.section>
+  );
+}
+
+function RankMove({ delta: d, show }: { delta: number; show: boolean }) {
+  const cls = !show || d === 0 ? "same" : d > 0 ? "up" : "down";
+  const text = !show || d === 0 ? "–" : d > 0 ? `▲${d}` : `▼${-d}`;
+  return (
+    <motion.span key={`${cls}${text}`} className={`mv ${cls}`} initial={{ opacity: 0, y: d > 0 ? 6 : -6 }} animate={{ opacity: 1, y: 0 }} aria-label={cls === "same" ? "no change" : `${cls} ${Math.abs(d)}`}>
+      {text}
+    </motion.span>
   );
 }
 
@@ -129,7 +148,7 @@ export function Standings({ players, title, animated = true }: { players: Public
 
 // ---------- Confetti ----------
 
-const CONFETTI_COLORS = ["#2e6b53", "#f05d3b", "#e9a21b", "#dbeee0", "#fbfcfa"];
+const CONFETTI_COLORS = ["#ff4b5c", "#2fd3c6", "#ece8e1", "#f5b83d"];
 
 /** Small burst from the bottom corners: a correct answer. */
 export function burstCorrect() {

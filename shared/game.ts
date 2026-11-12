@@ -150,7 +150,7 @@ export function newRoom(code: string, hostKey: string, quiz: RoomState["quiz"], 
     createdAt: now,
     quiz,
     players: {},
-    game: { phase: "lobby", index: 0, current: null, played: {}, defaultTimer: 30 },
+    game: { phase: "lobby", index: 0, current: null, played: {}, defaultTimer: 30, wins: [] },
     undo: [],
     redo: [],
   };
@@ -248,6 +248,7 @@ export function applyHost(s: RoomState, a: HostAction, now: number): string | nu
       snapshot(s, a.t === "correct" ? `+${POINTS} to ${name}` : `Marked ${name} wrong`);
       q.marks[a.id] = a.t;
       if (a.t === "correct") {
+        g.wins = [...(g.wins ?? []).filter((w) => w.qid !== q.qid), { qid: q.qid, id: a.id }];
         const p = Object.values(s.players).find((x) => x.id === a.id);
         if (p) p.score += POINTS;
       }
@@ -334,10 +335,22 @@ export function applyHost(s: RoomState, a: HostAction, now: number): string | nu
 
 // ---------- Views ----------
 
+/** Consecutive questions won by each player, counting back from the latest win. */
+export function streaks(wins: { id: string }[] = []): Record<string, number> {
+  const out: Record<string, number> = {};
+  const last = wins.at(-1);
+  if (!last) return out;
+  let n = 0;
+  for (let i = wins.length - 1; i >= 0 && wins[i].id === last.id; i--) n++;
+  out[last.id] = n;
+  return out;
+}
+
 function publicPlayers(s: RoomState, online: Set<string>): PublicPlayer[] {
+  const st = streaks(s.game.wins);
   return Object.values(s.players)
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    .map((p) => ({ id: p.id, name: p.name, ...AVATARS[p.avatar], score: p.score, online: online.has(p.pid) }));
+    .map((p) => ({ id: p.id, name: p.name, ...AVATARS[p.avatar], score: p.score, online: online.has(p.pid), streak: st[p.id] ?? 0 }));
 }
 
 function publicQuestion(s: RoomState, q: QState): PublicQuestion {

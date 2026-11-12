@@ -265,6 +265,31 @@ describe("game", () => {
     expect(s.game.current!.qid).toBe("q3");
   });
 
+  it("tracks win streaks and undo removes them", () => {
+    const { s, t0 } = setup();
+    const a = idOf(s, "secret-a"), b = idOf(s, "secret-b");
+    const win = (pid: string, id: string, qid: string, t: number) => {
+      const o = t + 3000 + BUZZ_LEAD_MS;
+      if (s.game.current!.buzzOpenAt == null) applyHost(s, { t: "timerStart" }, t + 3000);
+      applyBuzz(s, pid, qid, o + 10, o + 30);
+      expect(applyHost(s, { t: "correct", id }, o + 1000)).toBeNull();
+    };
+    win("secret-a", a, "q1", t0);
+    applyHost(s, { t: "next" }, t0 + 20_000);
+    win("secret-a", a, "q2", t0 + 20_000);
+    let v = hostView(s, new Set());
+    expect(v.players.find((p) => p.id === a)!.streak).toBe(2);
+    applyHost(s, { t: "undo" }, t0 + 30_000);
+    v = hostView(s, new Set());
+    expect(v.players.find((p) => p.id === a)!.streak).toBe(1);
+    applyHost(s, { t: "next" }, t0 + 50_000);
+    expect(s.game.current!.qid).toBe("q3");
+    win("secret-b", b, "q3", t0 + 50_000);
+    v = hostView(s, new Set());
+    expect(v.players.find((p) => p.id === a)!.streak).toBe(0);
+    expect(v.players.find((p) => p.id === b)!.streak).toBe(1);
+  });
+
   it("views never leak answers or secret ids", () => {
     const { s, t0 } = setup();
     const o = open(t0);
