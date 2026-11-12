@@ -160,54 +160,73 @@ function App() {
         <TimerBadge timer={q.timer} now={now} large bar />
       </header>
 
+      {/* Fixed slots: nothing here changes size between reading, buzzing and reveal. */}
       <div className={`display-main ${q.revealed ? "revealed" : ""}`}>
-        <div className="display-left">
-          <section className={`display-body ${q.image ? "with-image" : ""}`}>
-            <Rich text={q.text} className={`q-text ${textSizeClass(q.text)}`} images={false} />
-            {q.image && <img className="q-image" src={q.image} alt="" referrerPolicy="no-referrer" />}
-          </section>
+        <section className={`display-body ${q.image ? "with-image" : ""}`}>
+          <Rich text={q.text} className={`q-text ${textSizeClass(q.text)}`} images={false} />
+          {q.image && (
+            <div className="q-image-box">
+              <img className="q-image" src={q.image} alt="" referrerPolicy="no-referrer" />
+            </div>
+          )}
+        </section>
 
-          <AnimatePresence>
+        <section className={`answer-slot ${q.revealed ? "on" : ""}`} aria-live="polite">
+          <AnimatePresence initial={false}>
             {q.revealed && q.answer != null && (
-              <motion.section
+              <motion.div
                 key={`answer-${q.qid}`}
                 className="answer-panel"
-                initial={{ opacity: 0, y: 24, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ type: "spring", stiffness: 340, damping: 26 }}
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
               >
                 <span className="answer-label">Answer</span>
                 <Rich text={q.answer} className="answer-text" />
-              </motion.section>
+              </motion.div>
             )}
           </AnimatePresence>
+        </section>
 
-          <ol className="buzz-order">
-            <AnimatePresence initial={false}>
-              {rows.map((r) => (
-                <motion.li
-                  key={`${q.qid}-${r.entry.id}`}
-                  layout
-                  initial={{ opacity: 0, scale: 0.6, y: 20 }}
-                  animate={{ opacity: r.entry.mark === "wrong" ? 0.45 : 1, scale: r.answering && r.settled ? 1.06 : 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 28 }}
-                  className={`buzz-row ${r.answering && r.settled ? "answering" : ""} ${r.entry.mark ?? ""}`}
-                >
-                  <span className="place">{r.place}</span>
-                  {r.player && <PlayerAvatar name={r.player.name} color={r.player.color} size={44} animated={r.answering && r.settled} />}
-                  <span className="name">{r.player?.name ?? "?"}</span>
-                  <span className="gap">{r.place === 1 ? "first" : `+${(r.gapMs / 1000).toFixed(2)} s`}</span>
-                  {r.entry.mark === "correct" && <Check className="mark" aria-label="correct" strokeWidth={3} />}
-                  {r.entry.mark === "wrong" && <X className="mark" aria-label="wrong" strokeWidth={3} />}
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ol>
-        </div>
+        <aside className="side">
+          <section className="buzz-panel" aria-label="Buzz order">
+            <h2 className="lbl">Buzz order</h2>
+            <ol className="buzz-order">
+              {Array.from({ length: Math.max(4, view.players.length) }, (_, i) => {
+                const r = rows[i];
+                if (!r) {
+                  return (
+                    <li key={`empty-${i}`} className="buzz-row empty">
+                      <span className="place">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="name">—</span>
+                    </li>
+                  );
+                }
+                return (
+                  <motion.li
+                    key={`${q.qid}-${r.entry.id}`}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: r.entry.mark === "wrong" ? 0.5 : 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 520, damping: 34 }}
+                    className={`buzz-row ${r.answering && r.settled ? "answering" : ""} ${r.entry.mark ?? ""}`}
+                  >
+                    <span className="place">{String(r.place).padStart(2, "0")}</span>
+                    {r.player && <PlayerAvatar name={r.player.name} color={r.player.color} size={40} />}
+                    <span className="name">{r.player?.name ?? "?"}</span>
+                    <span className="gap">{r.place === 1 ? "first" : `+${(r.gapMs / 1000).toFixed(3)}s`}</span>
+                    <span className="mark-slot">
+                      {r.entry.mark === "correct" && <Check className="mark" aria-label="correct" strokeWidth={3} />}
+                      {r.entry.mark === "wrong" && <X className="mark" aria-label="wrong" strokeWidth={3} />}
+                    </span>
+                  </motion.li>
+                );
+              })}
+            </ol>
+          </section>
 
-        <AnimatePresence>{q.revealed && <Leaderboard key={`lb-${q.qid}`} players={view.players} scoredId={correctId} />}</AnimatePresence>
+          <Leaderboard key={`lb-${q.qid}`} players={view.players} scoredId={correctId} revealed={q.revealed} />
+        </aside>
       </div>
 
       {view.nextImage && <img src={view.nextImage} alt="" referrerPolicy="no-referrer" className="preload" />}

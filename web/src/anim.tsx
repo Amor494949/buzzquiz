@@ -38,18 +38,20 @@ function ranked(players: { id: string; name: string; score: number }[]) {
 }
 
 /**
- * Leaderboard shown on reveal. It first appears in the order from before this
- * question, then the scorer's +10 lands: their score rolls up and rows slide
- * into their new places.
+ * Leaderboard slot on the TV. The panel is always there (fixed size) so nothing
+ * around it moves; rows appear when the answer is revealed. They first show the
+ * order from before this question, then the scorer's +10 lands: their score rolls
+ * up and rows slide (transform only) into their new places.
  */
-export function Leaderboard({ players, scoredId, points = 10 }: { players: PublicPlayer[]; scoredId?: string; points?: number }) {
-  const [settled, setSettled] = useState(!scoredId);
+export function Leaderboard({ players, scoredId, revealed, points = 10 }: { players: PublicPlayer[]; scoredId?: string; revealed: boolean; points?: number }) {
+  const [settled, setSettled] = useState(false);
   useEffect(() => {
+    if (!revealed) return setSettled(false);
     if (!scoredId) return setSettled(true);
     setSettled(false);
     const t = setTimeout(() => setSettled(true), 700);
     return () => clearTimeout(t);
-  }, [scoredId]);
+  }, [scoredId, revealed]);
 
   const before = players.map((p) => ({ ...p, score: p.id === scoredId ? p.score - points : p.score }));
   const prevRank = new Map(ranked(before).map((r) => [r.id, r.rank]));
@@ -66,42 +68,39 @@ export function Leaderboard({ players, scoredId, points = 10 }: { players: Publi
   const shown = settled ? players : before;
   const order = ranked(shown);
   const byId = new Map(shown.map((p) => [p.id, p]));
+  const slots = Math.max(4, players.length);
 
   return (
-    <motion.section
-      className="leaderboard"
-      aria-label="Leaderboard"
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={spring}
-    >
-      <h2 className="leaderboard-title">Leaderboard</h2>
-      <ol>
-        {order.map(({ id, rank }, i) => {
-          const p = byId.get(id)!;
-          const lead = rank === 1 && p.score > 0;
-          return (
-            <motion.li
-              key={id}
-              layout
-              transition={spring}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0, transition: { ...spring, delay: 0.05 * i } }}
-              className={`lb-row ${lead ? "lead" : ""} ${id === scoredId ? "scored" : ""}`}
-            >
-              <span className="lb-rank">{rank}</span>
-              <PlayerAvatar name={p.name} color={p.color} size={48} animated />
-              <span className="lb-name">
-                {p.name}
-                {settled && p.streak >= 2 && <span className="streak-tag">{p.streak} streak</span>}
-              </span>
-              <RankMove delta={moveOf(players.find((x) => x.id === id)!)} show={settled} />
-              <Score value={p.score} className="lb-score" />
-            </motion.li>
-          );
-        })}
+    <section className={`leaderboard ${revealed ? "on" : ""}`} aria-label="Leaderboard">
+      <h2 className="lbl leaderboard-title">Leaderboard</h2>
+      <ol style={{ ["--slots" as string]: slots }}>
+        {revealed &&
+          order.map(({ id, rank }, i) => {
+            const p = byId.get(id)!;
+            const lead = rank === 1 && p.score > 0;
+            return (
+              <motion.li
+                key={id}
+                layout="position"
+                transition={spring}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0, transition: { ...spring, delay: 0.05 * i } }}
+                className={`lb-row ${lead ? "lead" : ""} ${id === scoredId ? "scored" : ""}`}
+              >
+                <span className="lb-rank">{rank}</span>
+                <PlayerAvatar name={p.name} color={p.color} size={48} animated />
+                <span className="lb-name">
+                  <span className="nm">{p.name}</span>
+                  {settled && p.streak >= 2 && <span className="streak-tag">{p.streak} streak</span>}
+                </span>
+                <RankMove delta={moveOf(players.find((x) => x.id === id)!)} show={settled} />
+                <Score value={p.score} className="lb-score" />
+              </motion.li>
+            );
+          })}
       </ol>
-    </motion.section>
+      {!revealed && <p className="lb-wait">Shown with the answer</p>}
+    </section>
   );
 }
 
